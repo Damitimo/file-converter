@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal File Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+
+        .format-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .format-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .upload-area {
+            border: 3px dashed #ddd;
+            border-radius: 15px;
+            padding: 60px 20px;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background-color: #f8f9ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background-color: #f0f4ff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            color: #ddd;
+            margin-bottom: 20px;
+            transition: color 0.3s ease;
+        }
+
+        .upload-area:hover .upload-icon {
+            color: #667eea;
+        }
+
+        .upload-text {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .upload-subtext {
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: none;
+            text-align: left;
+        }
+
+        .file-info.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .file-details {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .file-icon {
+            font-size: 2em;
+            color: #667eea;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+            word-break: break-all;
+        }
+
+        .file-size {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .conversion-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .select-wrapper {
+            position: relative;
+        }
+
+        select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1em;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .convert-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 18px 40px;
+            border-radius: 50px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        .convert-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .convert-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e1e5e9;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .result-area {
+            background: #f0f8f0;
+            border: 2px solid #4caf50;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .result-area.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        .download-btn {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+
+        .download-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .error-message {
+            background: #ffebee;
+            border: 2px solid #f44336;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        .supported-formats {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid #eee;
+        }
+
+        .supported-formats h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .format-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .format-item {
+            background: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 20px;
+            border: 1px solid #e1e5e9;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .conversion-options {
+                grid-template-columns: 1fr;
+            }
+
+            .upload-area {
+                padding: 40px 15px;
+            }
+
+            .upload-icon {
+                font-size: 3em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Design File Converter</h1>
+        <p class="subtitle">Convert between design formats instantly</p>
+        
+        <div class="format-badges">
+            <span class="format-badge">AI</span>
+            <span class="format-badge">SVG</span>
+            <span class="format-badge">PDF</span>
+            <span class="format-badge">JPG</span>
+            <span class="format-badge">EPS</span>
+            <span class="format-badge">PNG</span>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">Drop your design file here or click to browse</div>
+            <div class="upload-subtext">Supports AI, SVG, PDF, JPG, EPS, and PNG files</div>
+            <input type="file" id="fileInput" class="file-input" accept="*/*">
+        </div>
+
+        <div class="file-info" id="fileInfo">
+            <div class="file-details">
+                <div class="file-icon" id="fileIcon">📄</div>
+                <div class="file-name" id="fileName"></div>
+                <div class="file-size" id="fileSize"></div>
+            </div>
+        </div>
+
+        <div class="conversion-options">
+            <div class="select-wrapper">
+                <select id="fromFormat">
+                    <option value="">Auto-detect</option>
+                </select>
+            </div>
+            <div class="select-wrapper">
+                <select id="toFormat">
+                    <option value="">Select target format</option>
+                </select>
+            </div>
+        </div>
+
+        <button class="convert-btn" id="convertBtn" disabled>Convert File</button>
+
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="result-area" id="resultArea">
+            <div class="file-details">
+                <div class="file-icon">✅</div>
+                <div class="file-name">File converted successfully!</div>
+            </div>
+            <button class="download-btn" id="downloadBtn">Download Converted File</button>
+        </div>
+
+        <div class="error-message" id="errorMessage">
+            <div id="errorText"></div>
+        </div>
+
+        <div class="supported-formats">
+            <h3>Supported Conversions</h3>
+            <div class="format-list">
+                <div class="format-item">AI → SVG, PDF, PNG, JPG, EPS</div>
+                <div class="format-item">SVG → PNG, JPG, PDF, AI, EPS</div>
+                <div class="format-item">PDF → PNG, JPG, SVG</div>
+                <div class="format-item">JPG → PNG, PDF, SVG</div>
+                <div class="format-item">EPS → PNG, JPG, PDF, SVG</div>
+                <div class="format-item">PNG → JPG, PDF, SVG</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class FileConverter {
+            constructor() {
+                this.currentFile = null;
+                this.convertedFile = null;
+                this.initializeElements();
+                this.setupEventListeners();
+                this.populateFormatOptions();
+            }
+
+            initializeElements() {
+                this.uploadArea = document.getElementById('uploadArea');
+                this.fileInput = document.getElementById('fileInput');
+                this.fileInfo = document.getElementById('fileInfo');
+                this.fileName = document.getElementById('fileName');
+                this.fileSize = document.getElementById('fileSize');
+                this.fileIcon = document.getElementById('fileIcon');
+                this.fromFormat = document.getElementById('fromFormat');
+                this.toFormat = document.getElementById('toFormat');
+                this.convertBtn = document.getElementById('convertBtn');
+                this.progressBar = document.getElementById('progressBar');
+                this.progressFill = document.getElementById('progressFill');
+                this.resultArea = document.getElementById('resultArea');
+                this.downloadBtn = document.getElementById('downloadBtn');
+                this.errorMessage = document.getElementById('errorMessage');
+                this.errorText = document.getElementById('errorText');
+            }
+
+            setupEventListeners() {
+                // File upload events
+                this.uploadArea.addEventListener('click', () => this.fileInput.click());
+                this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e.target.files[0]));
+
+                // Drag and drop events
+                this.uploadArea.addEventListener('dragover', (e) => this.handleDragOver(e));
+                this.uploadArea.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+                this.uploadArea.addEventListener('drop', (e) => this.handleDrop(e));
+
+                // Conversion events
+                this.convertBtn.addEventListener('click', () => this.convertFile());
+                this.downloadBtn.addEventListener('click', () => this.downloadFile());
+
+                // Format change events
+                this.fromFormat.addEventListener('change', () => this.updateToFormatOptions());
+            }
+
+            populateFormatOptions() {
+                const formats = ['ai', 'svg', 'pdf', 'jpg', 'eps', 'png'];
+
+                formats.forEach(format => {
+                    const option = document.createElement('option');
+                    option.value = format;
+                    option.textContent = format.toUpperCase();
+                    this.fromFormat.appendChild(option.cloneNode(true));
+                    this.toFormat.appendChild(option);
+                });
+            }
+
+            updateToFormatOptions() {
+                this.toFormat.innerHTML = '<option value="">Select target format</option>';
+                const selectedFrom = this.fromFormat.value;
+                
+                if (selectedFrom) {
+                    const compatibleFormats = this.getCompatibleFormats(selectedFrom);
+                    compatibleFormats.forEach(format => {
+                        const option = document.createElement('option');
+                        option.value = format;
+                        option.textContent = format.toUpperCase();
+                        this.toFormat.appendChild(option);
+                    });
+                } else {
+                    // Show all formats when no source format is selected
+                    const formats = ['ai', 'svg', 'pdf', 'jpg', 'eps', 'png'];
+                    formats.forEach(format => {
+                        const option = document.createElement('option');
+                        option.value = format;
+                        option.textContent = format.toUpperCase();
+                        this.toFormat.appendChild(option);
+                    });
+                }
+            }
+
+            getCompatibleFormats(fromFormat) {
+                const formatGroups = {
+                    'ai': ['svg', 'pdf', 'png', 'jpg', 'eps'],
+                    'svg': ['png', 'jpg', 'pdf', 'ai', 'eps'],
+                    'pdf': ['png', 'jpg', 'svg'],
+                    'jpg': ['png', 'pdf', 'svg'],
+                    'eps': ['png', 'jpg', 'pdf', 'svg'],
+                    'png': ['jpg', 'pdf', 'svg']
+                };
+
+                return formatGroups[fromFormat] || [];
+            }
+
+            handleDragOver(e) {
+                e.preventDefault();
+                this.uploadArea.classList.add('dragover');
+            }
+
+            handleDragLeave(e) {
+                e.preventDefault();
+                this.uploadArea.classList.remove('dragover');
+            }
+
+            handleDrop(e) {
+                e.preventDefault();
+                this.uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    this.handleFileSelect(files[0]);
+                }
+            }
+
+            handleFileSelect(file) {
+                if (!file) return;
+
+                this.currentFile = file;
+                this.showFileInfo(file);
+                this.autoDetectFormat(file);
+                this.convertBtn.disabled = false;
+                this.hideMessages();
+            }
+
+            showFileInfo(file) {
+                this.fileName.textContent = file.name;
+                this.fileSize.textContent = this.formatFileSize(file.size);
+                this.fileIcon.textContent = this.getFileIcon(file.type);
+                this.fileInfo.classList.add('show');
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            getFileIcon(mimeType) {
+                const icons = {
+                    'image/': '🖼️',
+                    'application/pdf': '📕',
+                    'image/svg+xml': '🎨',
+                    'application/postscript': '📐',
+                    'application/illustrator': '🎨'
+                };
+
+                for (const [type, icon] of Object.entries(icons)) {
+                    if (mimeType.startsWith(type)) {
+                        return icon;
+                    }
+                }
+                return '📄';
+            }
+
+            autoDetectFormat(file) {
+                const extension = file.name.split('.').pop().toLowerCase();
+                if (extension) {
+                    this.fromFormat.value = extension;
+                    this.updateToFormatOptions();
+                }
+            }
+
+            async convertFile() {
+                if (!this.currentFile || !this.toFormat.value) {
+                    this.showError('Please select a file and target format');
+                    return;
+                }
+
+                this.showProgress();
+                this.convertBtn.disabled = true;
+
+                try {
+                    // Simulate conversion process
+                    await this.simulateConversion();
+                    this.convertedFile = await this.performConversion();
+                    this.showResult();
+                } catch (error) {
+                    this.showError('Conversion failed: ' + error.message);
+                } finally {
+                    this.hideProgress();
+                    this.convertBtn.disabled = false;
+                }
+            }
+
+            async simulateConversion() {
+                return new Promise((resolve) => {
+                    let progress = 0;
+                    const interval = setInterval(() => {
+                        progress += Math.random() * 15;
+                        if (progress >= 100) {
+                            progress = 100;
+                            clearInterval(interval);
+                            resolve();
+                        }
+                        this.updateProgress(progress);
+                    }, 100);
+                });
+            }
+
+            updateProgress(percent) {
+                this.progressFill.style.width = percent + '%';
+            }
+
+            showProgress() {
+                this.progressBar.style.display = 'block';
+                this.progressFill.style.width = '0%';
+            }
+
+            hideProgress() {
+                this.progressBar.style.display = 'none';
+            }
+
+            async performConversion() {
+                // This is a simplified conversion simulation
+                // In a real application, you would use actual conversion libraries
+                const fromExt = this.fromFormat.value || this.getFileExtension(this.currentFile.name);
+                const toExt = this.toFormat.value;
+                
+                // Create a new file with the converted extension
+                const newFileName = this.currentFile.name.replace(/\.[^/.]+$/, '') + '.' + toExt;
+                
+                // For demo purposes, we'll create a new file with the same content
+                // but different extension
+                const convertedBlob = new Blob([await this.currentFile.arrayBuffer()], {
+                    type: this.getMimeType(toExt)
+                });
+
+                return new File([convertedBlob], newFileName, { type: convertedBlob.type });
+            }
+
+            getFileExtension(filename) {
+                return filename.split('.').pop().toLowerCase();
+            }
+
+            getMimeType(extension) {
+                const mimeTypes = {
+                    'ai': 'application/illustrator',
+                    'svg': 'image/svg+xml',
+                    'pdf': 'application/pdf',
+                    'jpg': 'image/jpeg',
+                    'jpeg': 'image/jpeg',
+                    'eps': 'application/postscript',
+                    'png': 'image/png'
+                };
+                return mimeTypes[extension] || 'application/octet-stream';
+            }
+
+            showResult() {
+                this.resultArea.classList.add('show');
+                this.hideMessages();
+            }
+
+            downloadFile() {
+                if (!this.convertedFile) return;
+
+                const url = URL.createObjectURL(this.convertedFile);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = this.convertedFile.name;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            showError(message) {
+                this.errorText.textContent = message;
+                this.errorMessage.classList.add('show');
+                this.resultArea.classList.remove('show');
+            }
+
+            hideMessages() {
+                this.errorMessage.classList.remove('show');
+                this.resultArea.classList.remove('show');
+            }
+        }
+
+        // Initialize the file converter when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new FileConverter();
+        });
+    </script>
+</body>
+</html>
