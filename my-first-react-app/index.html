@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vector File Format Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .upload-area {
+            border: 3px dashed #4facfe;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: #00f2fe;
+            background: rgba(79, 172, 254, 0.05);
+        }
+
+        .upload-area.dragover {
+            border-color: #00f2fe;
+            background: rgba(79, 172, 254, 0.1);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #4facfe;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .preview-area {
+            margin: 30px 0;
+            text-align: center;
+            display: none;
+        }
+
+        .preview-container {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .preview-svg {
+            max-width: 100%;
+            max-height: 300px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+        }
+
+        .export-options {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .export-title {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        /* Updated export options to use checkboxes instead of buttons */
+        .export-checkboxes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .checkbox-option {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-option:hover {
+            border-color: #4facfe;
+            background: rgba(79, 172, 254, 0.05);
+        }
+
+        .checkbox-option.checked {
+            border-color: #4facfe;
+            background: rgba(79, 172, 254, 0.1);
+        }
+
+        .checkbox-option input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+
+        .checkbox-option label {
+            cursor: pointer;
+            font-size: 1rem;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .export-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .export-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .file-info {
+            background: #e3f2fd;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .file-info h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .file-info p {
+            color: #666;
+            margin: 5px 0;
+        }
+
+        .hidden-canvas {
+            display: none;
+        }
+
+        .note {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            color: #856404;
+        }
+
+        .note strong {
+            color: #b8860b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Vector Format Converter</h1>
+            <!-- Updated header description to reflect multiple input formats -->
+            <p>Convert vector files (SVG, AI, PDF) to multiple formats</p>
+        </div>
+
+        <div class="main-content">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <!-- Updated upload text to reflect multiple file types -->
+                <div class="upload-text">Drag & drop your vector file here</div>
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    Choose File
+                </button>
+                <!-- Updated file input to accept SVG, AI, and PDF files -->
+                <input type="file" id="fileInput" class="file-input" accept=".svg,.ai,.pdf" />
+            </div>
+
+            <div class="file-info" id="fileInfo">
+                <h3>File Information</h3>
+                <p id="fileName"></p>
+                <p id="fileSize"></p>
+                <p id="fileType"></p>
+            </div>
+
+            <div class="preview-area" id="previewArea">
+                <div class="preview-container">
+                    <div id="svgPreview"></div>
+                </div>
+            </div>
+
+            <div class="export-options" id="exportOptions">
+                <h2 class="export-title">Select Export Formats</h2>
+                <!-- Replaced export buttons with checkboxes -->
+                <div class="export-checkboxes" id="exportCheckboxes">
+                    <!-- Dynamic checkboxes will be inserted here -->
+                </div>
+                <button class="export-btn" id="exportBtn" onclick="exportSelected()" disabled>
+                    Export Selected Formats
+                </button>
+            </div>
+
+            <div class="note">
+                <strong>Note:</strong> AI export creates SVG format due to browser limitations. PDF files are converted to raster formats for export. All exports maintain high quality with customizable dimensions.
+            </div>
+        </div>
+    </div>
+
+    <canvas id="hiddenCanvas" class="hidden-canvas"></canvas>
+
+    <script>
+        let currentSVG = null;
+        let currentFileName = '';
+        let currentFileType = '';
+
+        // File upload handling
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const previewArea = document.getElementById('previewArea');
+        const exportOptions = document.getElementById('exportOptions');
+        const exportBtn = document.getElementById('exportBtn');
+
+        // Drag and drop functionality
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            const fileName = file.name.toLowerCase();
+            const fileExtension = fileName.split('.').pop();
+            
+            if (!['svg', 'ai', 'pdf'].includes(fileExtension)) {
+                alert('Please select a vector file (SVG, AI, or PDF).');
+                return;
+            }
+
+            currentFileName = file.name.replace(/\.(svg|ai|pdf)$/i, '');
+            currentFileType = fileExtension;
+            
+            // Show file info
+            document.getElementById('fileName').textContent = `Name: ${file.name}`;
+            document.getElementById('fileSize').textContent = `Size: ${(file.size / 1024).toFixed(2)} KB`;
+            document.getElementById('fileType').textContent = `Type: ${file.type || fileExtension.toUpperCase()}`;
+            fileInfo.style.display = 'block';
+
+            // Handle different file types
+            if (fileExtension === 'svg') {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentSVG = e.target.result;
+                    displaySVG(currentSVG);
+                    previewArea.style.display = 'block';
+                    createExportOptions(fileExtension);
+                    exportOptions.style.display = 'block';
+                };
+                reader.readAsText(file);
+            } else if (fileExtension === 'ai') {
+                // AI files can't be directly read in browser
+                document.getElementById('svgPreview').innerHTML = '<p style="color: #666; padding: 20px;">AI file loaded. Preview not available in browser.</p>';
+                previewArea.style.display = 'block';
+                createExportOptions(fileExtension);
+                exportOptions.style.display = 'block';
+            } else if (fileExtension === 'pdf') {
+                // PDF files can't be directly converted in browser
+                document.getElementById('svgPreview').innerHTML = '<p style="color: #666; padding: 20px;">PDF file loaded. Preview not available in browser.</p>';
+                previewArea.style.display = 'block';
+                createExportOptions(fileExtension);
+                exportOptions.style.display = 'block';
+            }
+        }
+
+        function createExportOptions(fileType) {
+            const checkboxContainer = document.getElementById('exportCheckboxes');
+            checkboxContainer.innerHTML = '';
+
+            const allFormats = [
+                { id: 'svg', label: '📄 SVG', name: 'SVG' },
+                { id: 'ai', label: '🎨 AI', name: 'AI' },
+                { id: 'pdf', label: '📋 PDF', name: 'PDF' },
+                { id: 'png', label: '🖼️ PNG', name: 'PNG' },
+                { id: 'jpg', label: '📸 JPG', name: 'JPG' }
+            ];
+
+            // Filter out the current file type from export options
+            const availableFormats = allFormats.filter(format => format.id !== fileType);
+
+            availableFormats.forEach(format => {
+                const checkboxDiv = document.createElement('div');
+                checkboxDiv.className = 'checkbox-option';
+                
+                checkboxDiv.innerHTML = `
+                    <input type="checkbox" id="${format.id}Checkbox" value="${format.id}" onchange="updateExportButton()">
+                    <label for="${format.id}Checkbox">${format.label} ${format.name}</label>
+                `;
+                
+                checkboxContainer.appendChild(checkboxDiv);
+
+                // Add click handler to the div for better UX
+                checkboxDiv.addEventListener('click', (e) => {
+                    if (e.target.type !== 'checkbox') {
+                        const checkbox = checkboxDiv.querySelector('input[type="checkbox"]');
+                        checkbox.checked = !checkbox.checked;
+                        updateExportButton();
+                    }
+                    checkboxDiv.classList.toggle('checked', checkboxDiv.querySelector('input[type="checkbox"]').checked);
+                });
+            });
+        }
+
+        function updateExportButton() {
+            const checkboxes = document.querySelectorAll('#exportCheckboxes input[type="checkbox"]');
+            const checkedBoxes = Array.from(checkboxes).filter(cb => cb.checked);
+            
+            exportBtn.disabled = checkedBoxes.length === 0;
+            
+            // Update visual state of checkbox options
+            checkboxes.forEach(checkbox => {
+                const option = checkbox.closest('.checkbox-option');
+                option.classList.toggle('checked', checkbox.checked);
+            });
+        }
+
+        function exportSelected() {
+            const checkboxes = document.querySelectorAll('#exportCheckboxes input[type="checkbox"]:checked');
+            const selectedFormats = Array.from(checkboxes).map(cb => cb.value);
+            
+            selectedFormats.forEach(format => {
+                switch(format) {
+                    case 'svg':
+                        exportAsSVG();
+                        break;
+                    case 'ai':
+                        exportAsAI();
+                        break;
+                    case 'pdf':
+                        exportAsPDF();
+                        break;
+                    case 'png':
+                        exportAsPNG();
+                        break;
+                    case 'jpg':
+                        exportAsJPG();
+                        break;
+                }
+            });
+        }
+
+        function displaySVG(svgContent) {
+            const previewContainer = document.getElementById('svgPreview');
+            previewContainer.innerHTML = svgContent;
+            
+            // Ensure SVG is properly sized for preview
+            const svgElement = previewContainer.querySelector('svg');
+            if (svgElement) {
+                svgElement.classList.add('preview-svg');
+            }
+        }
+
+        function exportAsSVG() {
+            if (!currentSVG) {
+                alert('SVG export not available for this file type.');
+                return;
+            }
+            
+            const blob = new Blob([currentSVG], { type: 'image/svg+xml' });
+            downloadFile(blob, `${currentFileName}.svg`);
+        }
+
+        function exportAsAI() {
+            if (!currentSVG) {
+                alert('AI export not available for this file type. Please note: True AI format export is not supported in browsers.');
+                return;
+            }
+            
+            // Export as SVG with .ai extension (browser limitation)
+            const blob = new Blob([currentSVG], { type: 'image/svg+xml' });
+            downloadFile(blob, `${currentFileName}.ai`);
+        }
+
+        function exportAsPDF() {
+            if (!currentSVG) {
+                alert('PDF export not available for this file type.');
+                return;
+            }
+
+            const canvas = document.getElementById('hiddenCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Create image from SVG
+            const img = new Image();
+            const svgBlob = new Blob([currentSVG], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(svgBlob);
+            
+            img.onload = function() {
+                canvas.width = img.width || 800;
+                canvas.height = img.height || 600;
+                
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+                
+                // Create PDF
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
+                    unit: 'px',
+                    format: [canvas.width, canvas.height]
+                });
+                
+                pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, canvas.width, canvas.height);
+                pdf.save(`${currentFileName}.pdf`);
+                
+                URL.revokeObjectURL(url);
+            };
+            
+            img.src = url;
+        }
+
+        function exportAsPNG() {
+            exportAsRaster('png');
+        }
+
+        function exportAsJPG() {
+            exportAsRaster('jpg');
+        }
+
+        function exportAsRaster(format) {
+            if (!currentSVG) {
+                alert(`${format.toUpperCase()} export not available for this file type.`);
+                return;
+            }
+
+            const canvas = document.getElementById('hiddenCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            const img = new Image();
+            const svgBlob = new Blob([currentSVG], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(svgBlob);
+            
+            img.onload = function() {
+                // Set high resolution
+                const scale = 2;
+                canvas.width = (img.width || 800) * scale;
+                canvas.height = (img.height || 600) * scale;
+                
+                ctx.scale(scale, scale);
+                
+                if (format === 'jpg') {
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, canvas.width / scale, canvas.height / scale);
+                }
+                
+                ctx.drawImage(img, 0, 0);
+                
+                const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
+                canvas.toBlob((blob) => {
+                    downloadFile(blob, `${currentFileName}.${format}`);
+                }, mimeType, 0.9);
+                
+                URL.revokeObjectURL(url);
+            };
+            
+            img.src = url;
+        }
+
+        function downloadFile(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
