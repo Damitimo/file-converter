@@ -15,10 +15,9 @@ export default function VectorConverter() {
   const [currentFileType, setCurrentFileType] = useState("")
   const [fileInfo, setFileInfo] = useState<{ name: string; size: string; type: string } | null>(null)
   const [showPreview, setShowPreview] = useState(false)
-  const [showExportOptions, setShowExportOptions] = useState(false)
+  const [showFormatSelection, setShowFormatSelection] = useState(false)
   const [selectedFormats, setSelectedFormats] = useState<string[]>([])
   const [isDragOver, setIsDragOver] = useState(false)
-
   const fileInputRef = useRef<HTMLInputElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -78,32 +77,32 @@ export default function VectorConverter() {
         const result = e.target?.result as string
         setCurrentSVG(result)
         setShowPreview(true)
-        setShowExportOptions(true)
+        setShowFormatSelection(true)
       }
       reader.readAsText(file)
     } else {
       setCurrentSVG(null)
       setShowPreview(true)
-      setShowExportOptions(true)
+      setShowFormatSelection(true)
     }
   }
 
-  const getAvailableFormats = () => {
-    return allFormats.filter((format) => format.id !== currentFileType)
-  }
+  const outputFormats = [
+    { id: "png", label: "PNG", name: "PNG", icon: FileImage },
+    { id: "jpg", label: "JPG", name: "JPG", icon: FileImage },
+    { id: "svg", label: "SVG", name: "SVG", icon: FileText },
+    { id: "pdf", label: "PDF", name: "PDF", icon: FileText },
+  ]
 
   const handleFormatToggle = (formatId: string) => {
     setSelectedFormats((prev) => (prev.includes(formatId) ? prev.filter((id) => id !== formatId) : [...prev, formatId]))
   }
 
-  const exportSelected = () => {
+  const startConversion = () => {
     selectedFormats.forEach((format) => {
       switch (format) {
         case "svg":
           exportAsSVG()
-          break
-        case "ai":
-          exportAsAI()
           break
         case "pdf":
           exportAsPDF()
@@ -136,17 +135,6 @@ export default function VectorConverter() {
     }
     const blob = new Blob([currentSVG], { type: "image/svg+xml" })
     downloadFile(blob, `${currentFileName}.svg`)
-  }
-
-  const exportAsAI = () => {
-    if (!currentSVG) {
-      alert(
-        "AI export not available for this file type. Please note: True AI format export is not supported in browsers.",
-      )
-      return
-    }
-    const blob = new Blob([currentSVG], { type: "image/svg+xml" })
-    downloadFile(blob, `${currentFileName}.ai`)
   }
 
   const exportAsPDF = () => {
@@ -256,55 +244,60 @@ export default function VectorConverter() {
           </CardContent>
         </Card>
 
-        {fileInfo && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">File Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Name:</span>
-                <Badge variant="secondary">{fileInfo.name}</Badge>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Size:</span>
-                <Badge variant="secondary">{fileInfo.size}</Badge>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Type:</span>
-                <Badge variant="secondary">{fileInfo.type}</Badge>
-              </div>
-            </CardContent>
-          </Card>
+        {(fileInfo || showPreview) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {fileInfo && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">File Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Name:</span>
+                    <Badge variant="secondary">{fileInfo.name}</Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Size:</span>
+                    <Badge variant="secondary">{fileInfo.size}</Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Type:</span>
+                    <Badge variant="secondary">{fileInfo.type}</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {showPreview && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Preview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="bg-muted rounded-lg p-4 min-h-[200px] flex items-center justify-center">
+                    {currentSVG ? (
+                      <div dangerouslySetInnerHTML={{ __html: currentSVG }} className="max-w-full max-h-80" />
+                    ) : (
+                      <p className="text-muted-foreground">
+                        {currentFileType.toUpperCase()} file loaded. Preview not available in browser.
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         )}
 
-        {showPreview && (
+        {showFormatSelection && (
           <Card>
             <CardHeader>
-              <CardTitle>Preview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-muted rounded-lg p-4 min-h-[200px] flex items-center justify-center">
-                {currentSVG ? (
-                  <div dangerouslySetInnerHTML={{ __html: currentSVG }} className="max-w-full max-h-80" />
-                ) : (
-                  <p className="text-muted-foreground">
-                    {currentFileType.toUpperCase()} file loaded. Preview not available in browser.
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {showExportOptions && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Select Export Formats</CardTitle>
+              <CardTitle>Select Output Formats</CardTitle>
+              <CardDescription>Choose which formats you want to convert your file to</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {getAvailableFormats().map((format) => {
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {outputFormats.map((format) => {
                   const IconComponent = format.icon
                   return (
                     <div
@@ -328,19 +321,18 @@ export default function VectorConverter() {
               </div>
 
               <div className="flex justify-center pt-4">
-                <Button onClick={exportSelected} disabled={selectedFormats.length === 0} className="px-8">
+                <Button onClick={startConversion} disabled={selectedFormats.length === 0} className="px-8">
                   <Download className="mr-2 h-4 w-4" />
-                  Export Selected Formats
+                  Start Conversion
                 </Button>
               </div>
             </CardContent>
           </Card>
         )}
-
         <Alert>
           <AlertDescription>
-            <strong>Note:</strong> AI export creates SVG format due to browser limitations. PDF files are converted to
-            raster formats for export. All exports maintain high quality with customizable dimensions.
+            <strong>Note:</strong> PDF files are converted to raster formats for export. All exports maintain high
+            quality with customizable dimensions.
           </AlertDescription>
         </Alert>
 
